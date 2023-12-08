@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package bfsp.ipc;
+
+message IPCMessage {
+  message AddDirectory {
+    string directory = 1;
+  }
+
+  message RemoveDirectory {
+    string directory = 1;
+  }
+
+  oneof message {
+    AddDirectory add_directory = 1;
+    RemoveDirectory remove_directory = 2;
+  }
+}
