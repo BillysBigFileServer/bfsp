@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
-use log::debug;
 use std::{collections::HashMap, io::SeekFrom};
 use tokio::{
     fs::File,

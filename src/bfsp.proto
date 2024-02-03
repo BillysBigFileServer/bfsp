@@ -8,18 +8,13 @@ message FileServerMessage {
     bytes chunk = 2;
   }
 
-  message ChunksUploadedQuery {
-    repeated bytes chunk_ids = 1;
-  }
+  message ChunksUploadedQuery { repeated bytes chunk_ids = 1; }
 
-  message DownloadChunkQuery {
-    bytes chunk_id = 1;
-  }
+  message DownloadChunkQuery { bytes chunk_id = 1; }
 
+  message DeleteChunksQuery { repeated bytes chunk_ids = 1; }
 
-  message Authentication {
-    string macaroon = 1;
-  }
+  message Authentication { string macaroon = 1; }
 
   Authentication auth = 1;
 
@@ -27,12 +22,11 @@ message FileServerMessage {
     UploadChunkQuery upload_chunk_query = 2;
     ChunksUploadedQuery chunks_uploaded_query = 3;
     DownloadChunkQuery download_chunk_query = 4;
+    DeleteChunksQuery delete_chunks_query = 5;
   }
 }
 
-message UploadChunkResp {
-  optional string err = 2;
-}
+message UploadChunkResp { optional string err = 1; }
 
 message DownloadChunkResp {
   message ChunkData {
@@ -52,15 +46,15 @@ message ChunksUploadedQueryResp {
     bool uploaded = 2;
   }
 
-  message ChunksUploaded {
-    repeated ChunkUploaded chunks = 1;
-  }
+  message ChunksUploaded { repeated ChunkUploaded chunks = 1; }
 
   oneof response {
     ChunksUploaded chunks = 1;
     string err = 2;
   }
 }
+
+message DeleteChunksResp { optional string err = 1; }
 
 message ChunkMetadata {
   bytes id = 1;
