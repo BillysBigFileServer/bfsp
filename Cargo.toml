@@ -16,6 +16,7 @@ uuid = { version = "1", features = ["v4"] }
 chacha20poly1305 = { version = "0.10", features = ["std"], optional = true }
 zstd = "0.13"
 log = "0.4"
+rand = { version = "0.8" }
 
 thiserror = { version = "1" }
 serde = { version = "1", optional = true }

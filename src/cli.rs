@@ -86,7 +86,7 @@ impl FileHeader {
 
             let chunk_hash: ChunkHash = chunk_hasher.finalize().into();
             let chunk_id = ChunkID::new(&chunk_hash);
-            let nonce = EncryptionNonce::new(&chunk_hash);
+            let nonce = EncryptionNonce::new();
 
             // Finally, insert some chunk metadata
             chunks.insert(
@@ -114,8 +114,8 @@ impl FileHeader {
         Ok(Self {
             hash: total_file_hasher.finalize().into(),
             chunk_size: chunk_size as u32,
-            chunks: chunks,
-            chunk_indices: chunk_indices,
+            chunks,
+            chunk_indices,
         })
     }
 }

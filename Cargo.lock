@@ -144,6 +144,7 @@ dependencies = [
  "macaroon",
  "prost",
  "prost-build",
+ "rand",
  "regex",
  "serde",
  "serde_derive",

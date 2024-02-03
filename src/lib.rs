@@ -30,3 +30,16 @@ pub use file::*;
 
 #[cfg(feature = "auth")]
 pub mod auth;
+
+pub trait PrependLen {
+    fn prepend_len(self) -> Self;
+}
+impl PrependLen for Vec<u8> {
+    fn prepend_len(mut self) -> Self {
+        let len = self.len();
+
+        let mut len_bytes = (len as u32).to_le_bytes().to_vec();
+        len_bytes.append(&mut self);
+        len_bytes
+    }
+}

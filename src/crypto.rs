@@ -124,11 +124,10 @@ impl TryFrom<Vec<u8>> for EncryptionNonce {
 }
 
 impl EncryptionNonce {
-    pub fn new(chunk_hash: &ChunkHash) -> Self {
-        let mut nonce: [u8; 24] = [0; 24];
-        nonce.copy_from_slice(&chunk_hash.to_bytes()[0..24]);
-
-        Self { nonce }
+    pub fn new() -> Self {
+        Self {
+            nonce: rand::random(),
+        }
     }
 }
 

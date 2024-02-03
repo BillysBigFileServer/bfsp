@@ -11,8 +11,23 @@ message IPCMessage {
     string directory = 1;
   }
 
+  message ListDirectory {
+    string directory = 1;
+  }
+
   oneof message {
     AddDirectory add_directory = 1;
     RemoveDirectory remove_directory = 2;
+    ListDirectory list_directory = 3;
   }
+}
+
+message DirectoryListing {
+  message File {
+    string path = 1;
+    int32 ChunksUploaded = 2;
+    int32 TotalChunks = 3; 
+  }
+
+  repeated File file = 1;
 }

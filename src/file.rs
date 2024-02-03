@@ -1,6 +1,7 @@
 pub use crate::crypto::*;
 
 pub use crate::bfsp::files::*;
+use crate::PrependLen;
 use anyhow::{anyhow, Error, Result};
 pub use prost::Message;
 use sqlx::{sqlite::SqliteRow, Row, Sqlite};
@@ -100,6 +101,7 @@ impl TryFrom<String> for ChunkID {
 impl ChunkID {
     /// Uses the chunk has as an RNG, FIXME insecure as shit
     /// This reduces the number of unknown bits in the file hash by HALF, which reduces the anonimity of any files being uploaded
+    /// ^ What the fuck was I writing? - billy december 2023
     pub fn new(hash: &ChunkHash) -> Self {
         let bytes: [u8; blake3::OUT_LEN] = *hash.0.as_bytes();
         let uuid_bytes: [u8; 16] = bytes[..16].try_into().unwrap();
@@ -143,15 +145,3 @@ impl Display for ChunkNotFound {
 }
 
 impl std::error::Error for ChunkNotFound {}
-
-pub trait PrependLen {
-    fn prepend_len(self) -> Self;
-}
-impl PrependLen for Vec<u8> {
-    fn prepend_len(mut self) -> Self {
-        let len = self.len();
-        let mut len_bytes = (len as u32).to_le_bytes().to_vec();
-        len_bytes.append(&mut self);
-        len_bytes
-    }
-}
