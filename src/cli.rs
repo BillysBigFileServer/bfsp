@@ -18,7 +18,7 @@ pub struct FileHeader {
     pub hash: FileHash,
     pub chunk_size: u32,
     pub chunks: HashMap<ChunkID, ChunkMetadata>,
-    pub chunk_indices: HashMap<ChunkID, u64>,
+    pub chunk_indices: HashMap<ChunkID, i64>,
 }
 
 impl FileHeader {

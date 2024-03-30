@@ -18,9 +18,9 @@ message FileServerMessage {
 
   message UploadFileMetadata { bytes encrypted_file_metadata = 1; };
 
-  message DownloadFileMetadataQuery { uint64 id = 1; }
+  message DownloadFileMetadataQuery { int64 id = 1; }
 
-  message ListFileMetadataQuery { repeated uint64 ids = 1; }
+  message ListFileMetadataQuery { repeated int64 ids = 1; }
 
   Authentication auth = 1;
 
@@ -69,18 +69,18 @@ message UploadFileMetadataResp { optional string err = 1; };
 
 message DownloadFileMetadataResp {
   oneof response {
-    string encrypted_file_metadata = 1;
+    bytes encrypted_file_metadata = 1;
     string err = 2;
   }
 };
 
 message ListFileMetadataResp {
   message FileMetadata {
-    uint64 id = 1;
+    int64 id = 1;
     string encrypted_file_metadata = 2;
   }
 
-  message FileMetadatas { repeated FileMetadata metadatas = 1; }
+  message FileMetadatas { map<int64, bytes> metadatas = 1; }
 
   oneof response {
     FileMetadatas metadatas = 1;
@@ -92,6 +92,6 @@ message ChunkMetadata {
   bytes id = 1;
   bytes hash = 2;
   uint32 size = 3;
-  uint64 indice = 4;
+  int64 indice = 4;
   bytes nonce = 5;
 }
