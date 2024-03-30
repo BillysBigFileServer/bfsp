@@ -1,6 +1,9 @@
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
-use std::{collections::HashMap, io::SeekFrom};
+use std::{
+    collections::HashMap,
+    io::{Seek, SeekFrom},
+};
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncSeekExt},
@@ -8,6 +11,7 @@ use tokio::{
 
 pub use crate::bfsp::files::ChunkMetadata;
 use crate::{ChunkHash, ChunkID, EncryptionKey, EncryptionNonce, FileHash};
+use rayon::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FileHeader {
@@ -119,41 +123,62 @@ impl FileHeader {
     }
 }
 
-//TODO: can this be a slice?
-pub async fn compressed_encrypted_chunk_from_file(
+pub fn compressed_encrypted_chunks_from_file(
     file_header: &FileHeader,
-    file: &mut File,
-    chunk_id: ChunkID,
+    file: &mut std::fs::File,
+    chunk_ids: &[ChunkID],
+    key: &EncryptionKey,
+) -> Result<Vec<(ChunkMetadata, Vec<u8>)>> {
+    use std::io::Read;
+
+    let chunk_infos: Vec<(ChunkMetadata, Vec<u8>, EncryptionKey)> = chunk_ids
+        .iter()
+        .map(|chunk_id| {
+            let chunk_meta = file_header
+                .chunks
+                .get(&chunk_id)
+                .ok_or_else(|| anyhow!("Chunk {chunk_id} not found in chunks"))?;
+
+            let chunk_indice = *file_header
+                .chunk_indices
+                .get(&chunk_id)
+                .ok_or_else(|| anyhow!("Chunk {chunk_id} not found in chunk_indices"))?;
+
+            let byte_index = chunk_indice as u64 * file_header.chunk_size as u64;
+
+            file.seek(SeekFrom::Start(byte_index))?;
+
+            let mut buf = Vec::with_capacity(chunk_meta.size as usize);
+            file.take(chunk_meta.size as u64).read_to_end(&mut buf)?;
+
+            // We have to include the key to be able to do this parallel
+            Ok((chunk_meta.clone(), buf, key.clone()))
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    chunk_infos
+        .into_par_iter()
+        .map(
+            move |(chunk_meta, buf, key): (ChunkMetadata, Vec<u8>, EncryptionKey)| {
+                Ok((
+                    chunk_meta.clone(),
+                    compress_and_encrypt(chunk_meta, buf, &key)?,
+                ))
+            },
+        )
+        .collect::<Result<_>>()
+}
+
+fn compress_and_encrypt(
+    chunk_meta: ChunkMetadata,
+    buf: Vec<u8>,
     key: &EncryptionKey,
 ) -> Result<Vec<u8>> {
-    let chunk_meta = file_header
-        .chunks
-        .get(&chunk_id)
-        .ok_or_else(|| anyhow!("Chunk {chunk_id} not found in chunks"))?;
-
-    let chunk_indice = *file_header
-        .chunk_indices
-        .get(&chunk_id)
-        .ok_or_else(|| anyhow!("Chunk {chunk_id} not found in chunk_indices"))?;
-
-    let byte_index = chunk_indice as u64 * file_header.chunk_size as u64;
-
-    file.seek(SeekFrom::Start(byte_index)).await?;
-
-    let mut buf = Vec::with_capacity(chunk_meta.size as usize);
-    file.take(chunk_meta.size as u64)
-        .read_to_end(&mut buf)
-        .await?;
-
     println!("Size before compression: {}KB", buf.len());
-
     let mut buf = zstd::bulk::compress(&buf, 15)?;
-    println!("Size after compression: {}KB", buf.len());
-
-    file.rewind().await?;
-
     key.encrypt_chunk_in_place(&mut buf, &chunk_meta)?;
 
+    println!("Size after compression + encryption: {}KB", buf.len());
     Ok(buf)
 }
 

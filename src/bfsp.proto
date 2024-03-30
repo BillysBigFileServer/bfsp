@@ -3,7 +3,7 @@ syntax = "proto3";
 package bfsp.files;
 
 message FileServerMessage {
-  message UploadChunkQuery {
+  message UploadChunk {
     ChunkMetadata chunk_metadata = 1;
     bytes chunk = 2;
   }
@@ -14,15 +14,21 @@ message FileServerMessage {
 
   message DeleteChunksQuery { repeated bytes chunk_ids = 1; }
 
-  message Authentication { string macaroon = 1; }
+  message Authentication { string token = 1; }
+
+  message UploadFileMetadata { bytes encrypted_file_metadata = 1; };
+
+  message DownloadFileMetadataQuery { uint64 id = 1; }
 
   Authentication auth = 1;
 
   oneof message {
-    UploadChunkQuery upload_chunk_query = 2;
+    UploadChunk upload_chunk = 2;
     ChunksUploadedQuery chunks_uploaded_query = 3;
     DownloadChunkQuery download_chunk_query = 4;
     DeleteChunksQuery delete_chunks_query = 5;
+    UploadFileMetadata upload_file_metadata = 6;
+    DownloadFileMetadataQuery download_file_metadata_query = 7;
   }
 }
 
@@ -55,6 +61,15 @@ message ChunksUploadedQueryResp {
 }
 
 message DeleteChunksResp { optional string err = 1; }
+
+message UploadFileMetadataResp { optional string err = 1; };
+
+message DownloadFileMetadataResp {
+  oneof response {
+    string encrypted_file_metadata = 1;
+    string err = 2;
+  }
+};
 
 message ChunkMetadata {
   bytes id = 1;
