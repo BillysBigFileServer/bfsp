@@ -20,6 +20,8 @@ message FileServerMessage {
 
   message DownloadFileMetadataQuery { uint64 id = 1; }
 
+  message ListFileMetadataQuery { repeated uint64 ids = 1; }
+
   Authentication auth = 1;
 
   oneof message {
@@ -29,6 +31,7 @@ message FileServerMessage {
     DeleteChunksQuery delete_chunks_query = 5;
     UploadFileMetadata upload_file_metadata = 6;
     DownloadFileMetadataQuery download_file_metadata_query = 7;
+    ListFileMetadataQuery list_file_metadata_query = 8;
   }
 }
 
@@ -67,6 +70,20 @@ message UploadFileMetadataResp { optional string err = 1; };
 message DownloadFileMetadataResp {
   oneof response {
     string encrypted_file_metadata = 1;
+    string err = 2;
+  }
+};
+
+message ListFileMetadataResp {
+  message FileMetadata {
+    uint64 id = 1;
+    string encrypted_file_metadata = 2;
+  }
+
+  message FileMetadatas { repeated FileMetadata metadatas = 1; }
+
+  oneof response {
+    FileMetadatas metadatas = 1;
     string err = 2;
   }
 };
