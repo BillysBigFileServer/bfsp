@@ -28,7 +28,6 @@ impl FileHeader {
 }
 
 impl FileHeader {
-    /// Random file ID
     pub async fn from_file(file: &mut File) -> Result<Self> {
         file.rewind().await?;
 

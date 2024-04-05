@@ -6,7 +6,7 @@ use tokio::fs::{self, File};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
-    pub macaroon: Option<String>,
+    pub token: Option<String>,
     pub enc_key: Option<String>,
 }
 
