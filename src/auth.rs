@@ -1,6 +1,7 @@
 pub use crate::bfsp::files::file_server_message::Authentication;
 use anyhow::{anyhow, Result};
 use prost::Message;
+use serde::{Deserialize, Serialize};
 
 impl Authentication {
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -16,7 +17,7 @@ impl Authentication {
     }
 }
 
-#[derive(serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct CreateUserRequest {
     pub email: String,
     pub password: String,
@@ -30,7 +31,7 @@ impl CreateUserRequest {
     }
 }
 
-#[derive(serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,

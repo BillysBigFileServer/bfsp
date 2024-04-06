@@ -1,12 +1,14 @@
+use base64::{engine::general_purpose::URL_SAFE, Engine};
+use sqlx::Row;
+use std::io::Read;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
-use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
-use sqlx::{sqlite::SqliteRow, Row, Sqlite};
-use tokio::{fs::File, io::AsyncReadExt};
+use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, Nonce, XChaCha20Poly1305};
+use sqlx::{sqlite::SqliteRow, Sqlite};
 
-use crate::files::ChunkMetadata;
+use crate::{files::ChunkMetadata, FileMetadata};
 
 #[derive(Clone)]
 pub struct EncryptionKey {
@@ -27,6 +29,10 @@ impl TryFrom<Vec<u8>> for EncryptionKey {
 impl sqlx::Type<Sqlite> for EncryptionKey {
     fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
         <&[u8] as sqlx::Type<Sqlite>>::type_info()
+    }
+
+    fn compatible(ty: &<Sqlite as sqlx::Database>::TypeInfo) -> bool {
+        *ty == Self::type_info()
     }
 }
 
@@ -79,7 +85,10 @@ impl EncryptionKey {
             chunk_meta.id.as_slice(),
             chunk,
         )?;
-        *chunk = zstd::bulk::decompress(&chunk, chunk_meta.size as usize)?;
+        let comp_chunk = chunk.clone();
+        let mut dec = ruzstd::StreamingDecoder::new(comp_chunk.as_slice()).unwrap();
+        dec.read_to_end(chunk).unwrap();
+
         Ok(())
     }
 }
@@ -282,7 +291,47 @@ impl TryFrom<Vec<u8>> for FileHash {
     }
 }
 
-pub async fn hash_file(file: &mut File) -> Result<FileHash> {
+impl FileMetadata {
+    /// Serialize the metadata to JSON,  compress it, encrypt the metadata, and serialize it again with base64
+    pub fn encrypt_serialize(&self, enc_key: &EncryptionKey, nonce: EncryptionNonce) -> String {
+        let mut compressed_json_bytes = {
+            let json = simd_json::to_string(self).unwrap();
+            let json_bytes = json.as_bytes().to_vec();
+
+            zstd::bulk::compress(&json_bytes, 15).unwrap()
+        };
+
+        let key = XChaCha20Poly1305::new(&enc_key.key);
+        key.encrypt_in_place(
+            nonce.to_bytes().as_slice().into(),
+            b"",
+            &mut compressed_json_bytes,
+        )
+        .unwrap();
+        URL_SAFE.encode(&compressed_json_bytes)
+    }
+
+    pub fn decrypt_deserialize(
+        enc_key: &EncryptionKey,
+        nonce: EncryptionNonce,
+        buffer: String,
+    ) -> Self {
+        let mut buffer = URL_SAFE.decode(buffer.as_bytes()).unwrap();
+
+        let key = XChaCha20Poly1305::new(&enc_key.key);
+        key.decrypt_in_place(nonce.to_bytes().as_slice().into(), b"", &mut buffer)
+            .unwrap();
+
+        let mut dec = ruzstd::StreamingDecoder::new(buffer.as_slice()).unwrap();
+        let mut decompressed = Vec::new();
+        dec.read_to_end(&mut decompressed).unwrap();
+
+        simd_json::from_slice(&mut decompressed).unwrap()
+    }
+}
+
+pub fn hash_file(file: &mut std::fs::File) -> Result<FileHash> {
+    // 8MB
     let chunk_size = 8388608 * 8;
 
     let mut total_file_hasher = Hasher::new();
@@ -295,7 +344,7 @@ pub async fn hash_file(file: &mut File) -> Result<FileHash> {
             if chunk_buf_index == chunk_buf.len() {
                 break false;
             }
-            match file.read(&mut chunk_buf[chunk_buf_index..]).await {
+            match file.read(&mut chunk_buf[chunk_buf_index..]) {
                 Ok(num_bytes_read) => match num_bytes_read {
                     0 => break true,
                     b => chunk_buf_index += b,

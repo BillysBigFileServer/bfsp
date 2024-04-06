@@ -15,20 +15,15 @@ mod bfsp {
 pub use bfsp::*;
 pub use prost::Message;
 
-#[cfg(feature = "cli")]
+#[cfg(not(target_arch = "wasm32"))]
 pub mod cli;
-
-#[cfg(feature = "config")]
+#[cfg(not(target_arch = "wasm32"))]
 pub mod config;
 
-#[cfg(feature = "crypto")]
 pub mod crypto;
-#[cfg(feature = "file")]
 pub mod file;
-#[cfg(feature = "file")]
 pub use file::*;
 
-#[cfg(feature = "auth")]
 pub mod auth;
 
 pub trait PrependLen {

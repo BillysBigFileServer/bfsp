@@ -4,11 +4,13 @@ pub use crate::bfsp::files::*;
 use crate::PrependLen;
 use anyhow::{anyhow, Error, Result};
 pub use prost::Message;
+use serde::{Deserialize, Serialize};
 use sqlx::{sqlite::SqliteRow, Row, Sqlite};
 use std::{
     fmt::{Debug, Display},
     str::FromStr,
 };
+use time::PrimitiveDateTime;
 use uuid::Uuid;
 
 impl FileServerMessage {
@@ -20,7 +22,7 @@ impl FileServerMessage {
     }
 }
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ChunkID {
     pub id: u128,
 }
@@ -122,6 +124,25 @@ impl ChunkMetadata {
     pub fn from_bytes(buf: &[u8]) -> Result<Self> {
         Self::decode(buf).map_err(|e| anyhow!("{e:?}"))
     }
+}
+
+// This is mostly for thumbnails. We always fallback to binary if we don't know the file type, but this is pretty inconsequential
+#[derive(Serialize, Deserialize)]
+pub enum FileType {
+    Image,
+    Text,
+    Binary,
+}
+
+/// Information on how to reconstruct a file, as well as some extra information
+#[derive(Serialize, Deserialize)]
+pub struct FileMetadata {
+    /// Chunk IDs are given in the order that they should be arranged
+    chunks: Vec<ChunkID>,
+    file_name: String,
+    file_type: FileType,
+    upload_time: PrimitiveDateTime,
+    modification_time: PrimitiveDateTime,
 }
 
 #[derive(Debug)]

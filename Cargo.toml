@@ -7,25 +7,28 @@ build = "build.rs"
 [dependencies]
 blake3 = { version = "1", features = ["rayon"] }
 anyhow = { version = "1" }
-tokio = { version = "1", features = ["fs", "io-util"] }
-sqlx = { version = "0.7", default-features = false, features = [
-     "sqlite",
+sqlx = { version = "0.7", features = [
      "macros",
-], optional = true }
-uuid = { version = "1", features = ["v4"], optional = true }
-chacha20poly1305 = { version = "0.10", default-features = false, features = ["std"], optional = true }
-zstd = "0.13"
+     "sqlite",
+] }
+uuid = { version = "1", features = ["v4"] }
+chacha20poly1305 = { version = "0.10", default-features = false, features = ["std", "getrandom"] }
+zstd = { version = "0.13" }
+ruzstd = { version = "0.6" }
 log = "0.4"
-
+time = { version = "0.3", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
 thiserror = { version = "1" }
-serde = { version = "1", optional = true }
-serde_derive = { version = "1", optional = true }
 prost = "0.12"
 bytes = "1"
-toml = { version = "0.8", optional = true }
-directories = { version = "5", optional = true }
+toml = { version = "0.8" }
+directories = { version = "5" }
 futures = { version = "0.3" }
 rayon = { version = "1" }
+rand = { version = "0.8", features = ["std"] }
+simd-json  = { version = "0.13" }
+base64 = { version = "0.22" }
+zstd-sys = { version = "=2.0.9", default-features = false }
 
 [build-dependencies]
 prost-build = { version = "0.12" }
@@ -39,10 +42,11 @@ tokio = { version = "1", features = [
 ] }
 sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio"] }
 
-[features]
-default = ["auth", "cli", "config"]
-file = ["crypto", "sqlx", "uuid"]
-auth = ["serde", "serde_derive"]
-crypto = ["chacha20poly1305"]
-cli = ["file"]
-config = ["serde", "toml", "directories"]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["fs", "io-util"], default-features = false }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+zstd = { version = "0.13", default-features = false, features = ["wasm"] }
+# TODO: temporary to fix parquet wasm build
+# upstream issue: https://github.com/gyscos/zstd-rs/issues/269
