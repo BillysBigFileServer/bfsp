@@ -3,11 +3,13 @@ use blake3::Hasher;
 use std::{
     collections::HashMap,
     io::{Seek, SeekFrom},
+    str::FromStr,
 };
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncSeekExt},
 };
+use uuid::Uuid;
 
 pub use crate::bfsp::files::ChunkMetadata;
 use crate::{ChunkHash, ChunkID, EncryptionKey, EncryptionNonce, FileHash};
@@ -179,6 +181,162 @@ fn compress_and_encrypt(
 
     println!("Size after compression + encryption: {}KB", buf.len());
     Ok(buf)
+}
+
+use sqlx::{sqlite::SqliteRow, Row, Sqlite};
+
+impl sqlx::Type<Sqlite> for ChunkID {
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        <String as sqlx::Type<Sqlite>>::type_info()
+    }
+}
+
+impl std::fmt::Display for ChunkID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let uuid = Uuid::from_u128(self.id);
+        f.write_str(&uuid.to_string())
+    }
+}
+
+impl sqlx::FromRow<'_, SqliteRow> for ChunkID {
+    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        row.try_get::<String, &str>("id")
+            .map(|chunk_id: String| Self {
+                id: Uuid::from_str(&chunk_id).unwrap().as_u128(),
+            })
+    }
+}
+
+impl sqlx::Encode<'_, Sqlite> for ChunkID {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
+    ) -> sqlx::encode::IsNull {
+        buf.push(sqlx::sqlite::SqliteArgumentValue::Text(
+            Uuid::from_u128(self.id).to_string().into(),
+        ));
+
+        sqlx::encode::IsNull::No
+    }
+}
+
+impl TryFrom<Vec<u8>> for ChunkID {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self> {
+        let uuid_bytes: [u8; 16] = value.try_into().map_err(|e| anyhow!("{e:?}"))?;
+        let uuid = Uuid::from_bytes(uuid_bytes);
+
+        Ok(ChunkID { id: uuid.as_u128() })
+    }
+}
+
+impl TryFrom<String> for ChunkID {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
+        Ok(ChunkID {
+            id: Uuid::from_str(&value)?.as_u128(),
+        })
+    }
+}
+
+impl sqlx::Type<Sqlite> for EncryptionKey {
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        <&[u8] as sqlx::Type<Sqlite>>::type_info()
+    }
+
+    fn compatible(ty: &<Sqlite as sqlx::Database>::TypeInfo) -> bool {
+        *ty == Self::type_info()
+    }
+}
+
+impl sqlx::Encode<'_, Sqlite> for EncryptionKey {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
+    ) -> sqlx::encode::IsNull {
+        let nonce = self.key.to_vec().into();
+        buf.push(sqlx::sqlite::SqliteArgumentValue::Blob(nonce));
+
+        sqlx::encode::IsNull::No
+    }
+}
+
+impl sqlx::Type<Sqlite> for EncryptionNonce {
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        <&[u8] as sqlx::Type<Sqlite>>::type_info()
+    }
+}
+
+impl sqlx::Encode<'_, Sqlite> for EncryptionNonce {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
+    ) -> sqlx::encode::IsNull {
+        let nonce = self.nonce.to_vec().into();
+        buf.push(sqlx::sqlite::SqliteArgumentValue::Blob(nonce));
+
+        sqlx::encode::IsNull::No
+    }
+}
+
+impl sqlx::Type<Sqlite> for ChunkHash {
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        <String as sqlx::Type<Sqlite>>::type_info()
+    }
+}
+
+impl sqlx::FromRow<'_, SqliteRow> for ChunkHash {
+    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        row.try_get::<String, &str>("hash")
+            .map(|hash: String| Self(blake3::Hash::from_str(&hash).unwrap()))
+    }
+}
+
+impl sqlx::Encode<'_, Sqlite> for ChunkHash {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
+    ) -> sqlx::encode::IsNull {
+        buf.push(sqlx::sqlite::SqliteArgumentValue::Text(
+            self.to_string().into(),
+        ));
+        sqlx::encode::IsNull::No
+    }
+}
+
+impl sqlx::FromRow<'_, SqliteRow> for EncryptionNonce {
+    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        row.try_get::<Vec<u8>, &str>("nonce")
+            .map(move |bytes: Vec<u8>| Self::try_from(bytes).unwrap())
+    }
+}
+
+impl sqlx::FromRow<'_, SqliteRow> for FileHash {
+    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
+        row.try_get::<String, &str>("file_hash")
+            .map(|hash: String| Self(blake3::Hash::from_str(&hash).unwrap()))
+    }
+}
+
+impl sqlx::Type<Sqlite> for FileHash {
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        <String as sqlx::Type<Sqlite>>::type_info()
+    }
+}
+
+impl sqlx::Encode<'_, Sqlite> for FileHash {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
+    ) -> sqlx::encode::IsNull {
+        buf.push(sqlx::sqlite::SqliteArgumentValue::Text(
+            self.0.to_string().into(),
+        ));
+
+        sqlx::encode::IsNull::No
+    }
 }
 
 pub const fn use_parallel_hasher(size: usize) -> bool {

@@ -7,16 +7,13 @@ build = "build.rs"
 [dependencies]
 blake3 = { version = "1", features = ["rayon"] }
 anyhow = { version = "1" }
-sqlx = { version = "0.7", features = [
-     "macros",
-     "sqlite",
-] }
+
 uuid = { version = "1", features = ["v4"] }
 chacha20poly1305 = { version = "0.10", default-features = false, features = ["std", "getrandom"] }
 zstd = { version = "0.13" }
 ruzstd = { version = "0.6" }
 log = "0.4"
-time = { version = "0.3", features = ["serde"] }
+time = { version = "0.3", features = ["serde", "macros"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = { version = "1" }
 prost = "0.12"
@@ -27,11 +24,16 @@ futures = { version = "0.3" }
 rayon = { version = "1" }
 rand = { version = "0.8", features = ["std"] }
 simd-json  = { version = "0.13" }
+serde_json = { version = "1" }
 base64 = { version = "0.22" }
+
+# TODO: temporary to fix parquet wasm build
+# upstream issue: https://github.com/gyscos/zstd-rs/issues/269
 zstd-sys = { version = "=2.0.9", default-features = false }
 
 [build-dependencies]
 prost-build = { version = "0.12" }
+
 
 [dev-dependencies]
 tokio = { version = "1", features = [
@@ -44,9 +46,11 @@ sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["fs", "io-util"], default-features = false }
+sqlx = { version = "0.7", features = [
+     "macros",
+     "sqlite",
+]}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
 zstd = { version = "0.13", default-features = false, features = ["wasm"] }
-# TODO: temporary to fix parquet wasm build
-# upstream issue: https://github.com/gyscos/zstd-rs/issues/269

@@ -2,14 +2,10 @@ pub use crate::crypto::*;
 
 pub use crate::bfsp::files::*;
 use crate::PrependLen;
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Result};
 pub use prost::Message;
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqliteRow, Row, Sqlite};
-use std::{
-    fmt::{Debug, Display},
-    str::FromStr,
-};
+use std::fmt::{Debug, Display, Formatter};
 use time::PrimitiveDateTime;
 use uuid::Uuid;
 
@@ -44,62 +40,6 @@ impl ChunkID {
     }
 }
 
-impl sqlx::Type<Sqlite> for ChunkID {
-    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        <String as sqlx::Type<Sqlite>>::type_info()
-    }
-}
-
-impl std::fmt::Display for ChunkID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let uuid = Uuid::from_u128(self.id);
-        f.write_str(&uuid.to_string())
-    }
-}
-
-impl sqlx::FromRow<'_, SqliteRow> for ChunkID {
-    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
-        row.try_get::<String, &str>("id")
-            .map(|chunk_id: String| Self {
-                id: Uuid::from_str(&chunk_id).unwrap().as_u128(),
-            })
-    }
-}
-
-impl sqlx::Encode<'_, Sqlite> for ChunkID {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
-        buf.push(sqlx::sqlite::SqliteArgumentValue::Text(
-            Uuid::from_u128(self.id).to_string().into(),
-        ));
-
-        sqlx::encode::IsNull::No
-    }
-}
-
-impl TryFrom<Vec<u8>> for ChunkID {
-    type Error = anyhow::Error;
-
-    fn try_from(value: Vec<u8>) -> Result<Self> {
-        let uuid_bytes: [u8; 16] = value.try_into().map_err(|e| anyhow!("{e:?}"))?;
-        let uuid = Uuid::from_bytes(uuid_bytes);
-
-        Ok(ChunkID { id: uuid.as_u128() })
-    }
-}
-
-impl TryFrom<String> for ChunkID {
-    type Error = Error;
-
-    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
-        Ok(ChunkID {
-            id: Uuid::from_str(&value)?.as_u128(),
-        })
-    }
-}
-
 impl ChunkID {
     /// Uses the chunk has as an RNG, FIXME insecure as shit
     /// This reduces the number of unknown bits in the file hash by HALF, which reduces the anonimity of any files being uploaded
@@ -127,22 +67,32 @@ impl ChunkMetadata {
 }
 
 // This is mostly for thumbnails. We always fallback to binary if we don't know the file type, but this is pretty inconsequential
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum FileType {
     Image,
     Text,
     Binary,
 }
 
+impl Display for FileType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            FileType::Image => f.write_str("Image"),
+            FileType::Text => f.write_str("Text"),
+            FileType::Binary => f.write_str("Binary"),
+        }
+    }
+}
+
 /// Information on how to reconstruct a file, as well as some extra information
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
     /// Chunk IDs are given in the order that they should be arranged
-    chunks: Vec<ChunkID>,
-    file_name: String,
-    file_type: FileType,
-    upload_time: PrimitiveDateTime,
-    modification_time: PrimitiveDateTime,
+    pub chunks: Vec<ChunkID>,
+    pub file_name: String,
+    pub file_type: FileType,
+    pub create_time: PrimitiveDateTime,
+    pub modification_time: PrimitiveDateTime,
 }
 
 #[derive(Debug)]

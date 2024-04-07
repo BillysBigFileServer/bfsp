@@ -1,18 +1,16 @@
 use base64::{engine::general_purpose::URL_SAFE, Engine};
-use sqlx::Row;
 use std::io::Read;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
 use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, Nonce, XChaCha20Poly1305};
-use sqlx::{sqlite::SqliteRow, Sqlite};
 
 use crate::{files::ChunkMetadata, FileMetadata};
 
 #[derive(Clone)]
 pub struct EncryptionKey {
-    key: Key,
+    pub(crate) key: Key,
 }
 
 impl TryFrom<Vec<u8>> for EncryptionKey {
@@ -26,25 +24,12 @@ impl TryFrom<Vec<u8>> for EncryptionKey {
     }
 }
 
-impl sqlx::Type<Sqlite> for EncryptionKey {
-    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        <&[u8] as sqlx::Type<Sqlite>>::type_info()
-    }
+impl TryFrom<&str> for EncryptionKey {
+    type Error = anyhow::Error;
 
-    fn compatible(ty: &<Sqlite as sqlx::Database>::TypeInfo) -> bool {
-        *ty == Self::type_info()
-    }
-}
-
-impl sqlx::Encode<'_, Sqlite> for EncryptionKey {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
-        let nonce = self.key.to_vec().into();
-        buf.push(sqlx::sqlite::SqliteArgumentValue::Blob(nonce));
-
-        sqlx::encode::IsNull::No
+    fn try_from(value: &str) -> Result<Self> {
+        let bytes: Vec<u8> = URL_SAFE.decode(value)?;
+        bytes.try_into()
     }
 }
 
@@ -91,34 +76,22 @@ impl EncryptionKey {
 
         Ok(())
     }
+    pub fn serialize(&self) -> String {
+        URL_SAFE.encode(&self.key)
+    }
 }
 
-#[derive(Clone, sqlx::FromRow, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EncryptionNonce {
-    nonce: [u8; 24],
+    pub(crate) nonce: [u8; 24],
 }
 
 impl EncryptionNonce {
     pub fn to_bytes(&self) -> [u8; 24] {
         self.nonce
     }
-}
-
-impl sqlx::Type<Sqlite> for EncryptionNonce {
-    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        <&[u8] as sqlx::Type<Sqlite>>::type_info()
-    }
-}
-
-impl sqlx::Encode<'_, Sqlite> for EncryptionNonce {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
-        let nonce = self.nonce.to_vec().into();
-        buf.push(sqlx::sqlite::SqliteArgumentValue::Blob(nonce));
-
-        sqlx::encode::IsNull::No
+    pub fn serialize(&self) -> String {
+        URL_SAFE.encode(&self.nonce)
     }
 }
 
@@ -129,6 +102,16 @@ impl TryFrom<Vec<u8>> for EncryptionNonce {
         Ok(Self {
             nonce: value.try_into().map_err(|e| anyhow!("{e:?}"))?,
         })
+    }
+}
+
+impl TryFrom<&str> for EncryptionNonce {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self> {
+        let value: Vec<u8> = URL_SAFE.decode(&value)?;
+        let value: Result<Self> = value.try_into();
+        value
     }
 }
 
@@ -155,31 +138,6 @@ impl ChunkHash {
 impl From<blake3::Hash> for ChunkHash {
     fn from(value: blake3::Hash) -> Self {
         Self(value)
-    }
-}
-
-impl sqlx::Type<Sqlite> for ChunkHash {
-    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        <String as sqlx::Type<Sqlite>>::type_info()
-    }
-}
-
-impl sqlx::FromRow<'_, SqliteRow> for ChunkHash {
-    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
-        row.try_get::<String, &str>("hash")
-            .map(|hash: String| Self(blake3::Hash::from_str(&hash).unwrap()))
-    }
-}
-
-impl sqlx::Encode<'_, Sqlite> for ChunkHash {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
-        buf.push(sqlx::sqlite::SqliteArgumentValue::Text(
-            self.to_string().into(),
-        ));
-        sqlx::encode::IsNull::No
     }
 }
 
@@ -229,32 +187,6 @@ impl std::fmt::Display for FileHash {
     }
 }
 
-impl sqlx::FromRow<'_, SqliteRow> for FileHash {
-    fn from_row(row: &SqliteRow) -> std::result::Result<Self, sqlx::Error> {
-        row.try_get::<String, &str>("file_hash")
-            .map(|hash: String| Self(blake3::Hash::from_str(&hash).unwrap()))
-    }
-}
-
-impl sqlx::Type<Sqlite> for FileHash {
-    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        <String as sqlx::Type<Sqlite>>::type_info()
-    }
-}
-
-impl sqlx::Encode<'_, Sqlite> for FileHash {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
-        buf.push(sqlx::sqlite::SqliteArgumentValue::Text(
-            self.0.to_string().into(),
-        ));
-
-        sqlx::encode::IsNull::No
-    }
-}
-
 impl From<blake3::Hash> for FileHash {
     fn from(value: blake3::Hash) -> Self {
         Self(value)
@@ -295,7 +227,9 @@ impl FileMetadata {
     /// Serialize the metadata to JSON,  compress it, encrypt the metadata, and serialize it again with base64
     pub fn encrypt_serialize(&self, enc_key: &EncryptionKey, nonce: EncryptionNonce) -> String {
         let mut compressed_json_bytes = {
-            let json = simd_json::to_string(self).unwrap();
+            // simd_json is buggy when encoding for some reason?
+            // TODO report the error
+            let json = serde_json::to_string(self).unwrap();
             let json_bytes = json.as_bytes().to_vec();
 
             zstd::bulk::compress(&json_bytes, 15).unwrap()
@@ -314,19 +248,28 @@ impl FileMetadata {
     pub fn decrypt_deserialize(
         enc_key: &EncryptionKey,
         nonce: EncryptionNonce,
-        buffer: String,
-    ) -> Self {
-        let mut buffer = URL_SAFE.decode(buffer.as_bytes()).unwrap();
+        buffer: &str,
+    ) -> Result<Self, String> {
+        // Base64 decode
+        let mut buffer = URL_SAFE
+            .decode(buffer.as_bytes())
+            .map_err(|err| format!("Error base64 decoding file metadata: {err}"))?;
 
+        // Decrypt
         let key = XChaCha20Poly1305::new(&enc_key.key);
         key.decrypt_in_place(nonce.to_bytes().as_slice().into(), b"", &mut buffer)
-            .unwrap();
+            .map_err(|err| format!("Error decrypting file metadata: {err}"))?;
 
-        let mut dec = ruzstd::StreamingDecoder::new(buffer.as_slice()).unwrap();
+        // Decompress
+        let mut dec = ruzstd::StreamingDecoder::new(buffer.as_slice())
+            .map_err(|err| format!("Error creating ZSTD decompressor for file metadata: {err}"))?;
         let mut decompressed = Vec::new();
-        dec.read_to_end(&mut decompressed).unwrap();
+        dec.read_to_end(&mut decompressed)
+            .map_err(|err| format!("Error decompressing file metadata: {err}"))?;
 
-        simd_json::from_slice(&mut decompressed).unwrap()
+        // JSON Deserialize
+        Ok(simd_json::from_slice(&mut decompressed)
+            .map_err(|err| format!("Error JSON deserializing file metadata: {err}"))?)
     }
 }
 
