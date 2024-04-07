@@ -2,6 +2,11 @@ syntax = "proto3";
 
 package bfsp.files;
 
+message EncryptedFileMetadata {
+  bytes metadata = 1;
+  bytes nonce = 2;
+}
+
 message FileServerMessage {
   message UploadChunk {
     ChunkMetadata chunk_metadata = 1;
@@ -16,7 +21,7 @@ message FileServerMessage {
 
   message Authentication { string token = 1; }
 
-  message UploadFileMetadata { bytes encrypted_file_metadata = 1; };
+  message UploadFileMetadata { EncryptedFileMetadata encrypted_file_metadata = 1; };
 
   message DownloadFileMetadataQuery { int64 id = 1; }
 
@@ -69,18 +74,13 @@ message UploadFileMetadataResp { optional string err = 1; };
 
 message DownloadFileMetadataResp {
   oneof response {
-    bytes encrypted_file_metadata = 1;
+    EncryptedFileMetadata encrypted_file_metadata = 1;
     string err = 2;
   }
 };
 
 message ListFileMetadataResp {
-  message FileMetadata {
-    int64 id = 1;
-    string encrypted_file_metadata = 2;
-  }
-
-  message FileMetadatas { map<int64, bytes> metadatas = 1; }
+  message FileMetadatas { map<int64, EncryptedFileMetadata> metadatas = 1; }
 
   oneof response {
     FileMetadatas metadatas = 1;
