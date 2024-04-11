@@ -177,7 +177,7 @@ fn compress_and_encrypt(
 ) -> Result<Vec<u8>> {
     println!("Size before compression: {}KB", buf.len());
     let mut buf = zstd::bulk::compress(&buf, 15)?;
-    key.encrypt_chunk_in_place(&mut buf, &chunk_meta)?;
+    key.compress_encrypt_chunk_in_place(&mut buf, &chunk_meta)?;
 
     println!("Size after compression + encryption: {}KB", buf.len());
     Ok(buf)

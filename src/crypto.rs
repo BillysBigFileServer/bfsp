@@ -1,4 +1,5 @@
 use base64::{engine::general_purpose::URL_SAFE, Engine};
+use prost::Message;
 use std::io::Read;
 use std::str::FromStr;
 
@@ -45,17 +46,19 @@ impl EncryptionKey {
         Self { key }
     }
 
-    pub fn encrypt_chunk_in_place(
+    pub fn compress_encrypt_chunk_in_place(
         &self,
         chunk: &mut Vec<u8>,
         chunk_meta: &ChunkMetadata,
     ) -> Result<()> {
+        let mut compressed_chunk = zstd::bulk::compress(chunk, 15)?;
         let key = XChaCha20Poly1305::new(&self.key);
         key.encrypt_in_place(
             chunk_meta.nonce.as_slice().into(),
             chunk_meta.id.as_slice(),
-            chunk,
+            &mut compressed_chunk,
         )?;
+        *chunk = compressed_chunk;
 
         Ok(())
     }
@@ -223,26 +226,26 @@ impl TryFrom<Vec<u8>> for FileHash {
     }
 }
 
+impl ChunkMetadata {
+    pub fn encode_base64(&self) -> String {
+        URL_SAFE.encode(&self.encode_to_vec())
+    }
+}
+
 impl FileMetadata {
     /// Serialize the metadata to JSON,  compress it, encrypt the metadata, and serialize it again with base64
     pub fn encrypt_serialize(&self, enc_key: &EncryptionKey, nonce: EncryptionNonce) -> String {
-        let mut compressed_json_bytes = {
-            // simd_json is buggy when encoding for some reason?
-            // TODO report the error
-            let json = serde_json::to_string(self).unwrap();
-            let json_bytes = json.as_bytes().to_vec();
-
-            zstd::bulk::compress(&json_bytes, 15).unwrap()
-        };
+        let mut compressed_bytes =
+            zstd::bulk::compress(&bincode::serialize(self).unwrap(), 15).unwrap();
 
         let key = XChaCha20Poly1305::new(&enc_key.key);
         key.encrypt_in_place(
             nonce.to_bytes().as_slice().into(),
             b"",
-            &mut compressed_json_bytes,
+            &mut compressed_bytes,
         )
         .unwrap();
-        URL_SAFE.encode(&compressed_json_bytes)
+        URL_SAFE.encode(&compressed_bytes)
     }
 
     pub fn decrypt_deserialize(
@@ -267,9 +270,8 @@ impl FileMetadata {
         dec.read_to_end(&mut decompressed)
             .map_err(|err| format!("Error decompressing file metadata: {err}"))?;
 
-        // JSON Deserialize
-        Ok(simd_json::from_slice(&mut decompressed)
-            .map_err(|err| format!("Error JSON deserializing file metadata: {err}"))?)
+        Ok(bincode::deserialize(&decompressed)
+            .map_err(|err| format!("Error deserializing file metadata: {err}"))?)
     }
 }
 
@@ -323,4 +325,12 @@ pub fn parallel_hash_chunk(chunk: &[u8]) -> ChunkHash {
     let mut hasher = Hasher::new();
     hasher.update(chunk);
     hasher.finalize().into()
+}
+
+pub fn base64_encode(data: &[u8]) -> String {
+    URL_SAFE.encode(data)
+}
+
+pub fn base64_decode(data: &str) -> Result<Vec<u8>> {
+    Ok(URL_SAFE.decode(data)?)
 }

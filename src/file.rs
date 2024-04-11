@@ -4,7 +4,7 @@ pub use crate::bfsp::files::*;
 use crate::PrependLen;
 use anyhow::{anyhow, Result};
 pub use prost::Message;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use time::PrimitiveDateTime;
 use uuid::Uuid;
@@ -18,9 +18,29 @@ impl FileServerMessage {
     }
 }
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq)]
 pub struct ChunkID {
     pub id: u128,
+}
+
+impl Serialize for ChunkID {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        let bytes = self.to_bytes();
+        bytes.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ChunkID {
+    fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes = <[u8; 16]>::deserialize(deserializer)?;
+        Ok(Self::from_bytes(bytes))
+    }
 }
 
 impl Debug for ChunkID {

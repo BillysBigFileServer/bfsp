@@ -10,7 +10,7 @@ anyhow = { version = "1" }
 
 uuid = { version = "1", features = ["v4"] }
 chacha20poly1305 = { version = "0.10", default-features = false, features = ["std", "getrandom"] }
-zstd = { version = "0.13" }
+zstd = { version = "0.13", features = ["fat-lto"] }
 ruzstd = { version = "0.6" }
 log = "0.4"
 time = { version = "0.3", features = ["serde", "macros"] }
@@ -18,6 +18,7 @@ serde = { version = "1", features = ["derive"] }
 thiserror = { version = "1" }
 prost = "0.12"
 bytes = "1"
+bincode = { version = "1", features = ["i128"] }
 toml = { version = "0.8" }
 directories = { version = "5" }
 futures = { version = "0.3" }
@@ -53,4 +54,4 @@ sqlx = { version = "0.7", features = [
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
-zstd = { version = "0.13", default-features = false, features = ["wasm"] }
+zstd = { version = "0.13", default-features = false, features = ["wasm", "fat-lto"] }
