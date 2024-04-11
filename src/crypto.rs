@@ -1,5 +1,6 @@
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use prost::Message;
+use sqlx::{postgres::PgArgumentBuffer, types::Text, Postgres};
 use std::io::Read;
 use std::str::FromStr;
 
@@ -128,6 +129,18 @@ impl EncryptionNonce {
 
 #[derive(PartialEq)]
 pub struct ChunkHash(pub(crate) blake3::Hash);
+
+impl sqlx::Type<Postgres> for ChunkHash {
+    fn type_info() -> <Postgres as sqlx::Database>::TypeInfo {
+        <String as sqlx::Type<Postgres>>::type_info()
+    }
+}
+
+impl sqlx::Encode<'_, Postgres> for ChunkHash {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> sqlx::encode::IsNull {
+        Text(self.to_string()).encode(buf)
+    }
+}
 
 impl ChunkHash {
     pub fn to_bytes(&self) -> &[u8] {

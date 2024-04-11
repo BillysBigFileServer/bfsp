@@ -4,7 +4,8 @@ pub use crate::bfsp::files::*;
 use crate::PrependLen;
 use anyhow::{anyhow, Result};
 pub use prost::Message;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgArgumentBuffer, types::Text, Postgres};
 use std::fmt::{Debug, Display, Formatter};
 use time::PrimitiveDateTime;
 use uuid::Uuid;
@@ -21,6 +22,26 @@ impl FileServerMessage {
 #[derive(Copy, Clone, Eq, Hash, PartialEq)]
 pub struct ChunkID {
     pub id: u128,
+}
+
+impl Display for ChunkID {
+    // converts it to a UUID, then displays it
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let uuid = Uuid::from_u128(self.id);
+        f.write_str(&uuid.to_string())
+    }
+}
+
+impl sqlx::Type<Postgres> for ChunkID {
+    fn type_info() -> <Postgres as sqlx::Database>::TypeInfo {
+        <String as sqlx::Type<Postgres>>::type_info()
+    }
+}
+
+impl sqlx::Encode<'_, Postgres> for ChunkID {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> sqlx::encode::IsNull {
+        Text(self.to_string()).encode(buf)
+    }
 }
 
 impl Serialize for ChunkID {

@@ -16,8 +16,6 @@ pub use bfsp::*;
 pub use prost::Message;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub mod cli;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod config;
 
 pub mod crypto;
