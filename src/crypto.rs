@@ -1,12 +1,11 @@
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use prost::Message;
-use sqlx::{postgres::PgArgumentBuffer, types::Text, Postgres};
 use std::io::Read;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
-use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, Nonce, XChaCha20Poly1305};
+use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
 
 use crate::{files::ChunkMetadata, FileMetadata};
 
@@ -130,18 +129,6 @@ impl EncryptionNonce {
 #[derive(PartialEq)]
 pub struct ChunkHash(pub(crate) blake3::Hash);
 
-impl sqlx::Type<Postgres> for ChunkHash {
-    fn type_info() -> <Postgres as sqlx::Database>::TypeInfo {
-        <String as sqlx::Type<Postgres>>::type_info()
-    }
-}
-
-impl sqlx::Encode<'_, Postgres> for ChunkHash {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> sqlx::encode::IsNull {
-        Text(self.to_string()).encode(buf)
-    }
-}
-
 impl ChunkHash {
     pub fn to_bytes(&self) -> &[u8] {
         self.0.as_bytes()
@@ -247,7 +234,7 @@ impl ChunkMetadata {
 
 impl FileMetadata {
     /// Serialize the metadata to JSON,  compress it, encrypt the metadata, and serialize it again with base64
-    pub fn encrypt_serialize(&self, enc_key: &EncryptionKey, nonce: EncryptionNonce) -> String {
+    pub fn encrypt_serialize(&self, enc_key: &EncryptionKey, nonce: EncryptionNonce) -> Vec<u8> {
         let mut compressed_bytes =
             zstd::bulk::compress(&bincode::serialize(self).unwrap(), 15).unwrap();
 
@@ -258,19 +245,15 @@ impl FileMetadata {
             &mut compressed_bytes,
         )
         .unwrap();
-        URL_SAFE.encode(&compressed_bytes)
+
+        compressed_bytes
     }
 
     pub fn decrypt_deserialize(
         enc_key: &EncryptionKey,
         nonce: EncryptionNonce,
-        buffer: &str,
+        mut buffer: Vec<u8>,
     ) -> Result<Self, String> {
-        // Base64 decode
-        let mut buffer = URL_SAFE
-            .decode(buffer.as_bytes())
-            .map_err(|err| format!("Error base64 decoding file metadata: {err}"))?;
-
         // Decrypt
         let key = XChaCha20Poly1305::new(&enc_key.key);
         key.decrypt_in_place(nonce.to_bytes().as_slice().into(), b"", &mut buffer)

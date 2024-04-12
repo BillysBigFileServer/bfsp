@@ -49,6 +49,7 @@ pub enum GetConfigDirError {
     ProjectDirsError,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub async fn get_config_dir() -> Result<PathBuf, GetConfigDirError> {
     let project_dirs =
         directories::ProjectDirs::from("com", "Billy", "Billys Encrypted File Server")

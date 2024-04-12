@@ -20,6 +20,8 @@ pub mod config;
 
 pub mod crypto;
 pub mod file;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod sqlx;
 pub use file::*;
 
 pub mod auth;
