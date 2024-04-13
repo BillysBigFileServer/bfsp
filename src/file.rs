@@ -5,7 +5,10 @@ use crate::PrependLen;
 use anyhow::{anyhow, Result};
 pub use prost::Message;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display, Formatter},
+};
 use time::PrimitiveDateTime;
 use uuid::Uuid;
 
@@ -58,6 +61,9 @@ impl Debug for ChunkID {
 }
 
 impl ChunkID {
+    pub const fn len() -> usize {
+        16
+    }
     pub fn to_bytes(&self) -> [u8; 16] {
         self.id.to_le_bytes()
     }
@@ -115,8 +121,8 @@ impl Display for FileType {
 /// Information on how to reconstruct a file, as well as some extra information
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
-    /// Chunk IDs are given in the order that they should be arranged
-    pub chunks: Vec<ChunkID>,
+    // The key is the chunk's indices, the value is the hash of the chunk
+    pub chunks: HashMap<u64, ChunkHash>,
     pub file_name: String,
     pub file_type: FileType,
     pub create_time: PrimitiveDateTime,

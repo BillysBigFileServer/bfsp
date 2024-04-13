@@ -1,5 +1,6 @@
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use prost::Message;
+use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::str::FromStr;
 
@@ -8,6 +9,8 @@ use blake3::Hasher;
 use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
 
 use crate::{files::ChunkMetadata, FileMetadata};
+
+const COMPRESSION_LEVEL: i32 = 1;
 
 #[derive(Clone)]
 pub struct EncryptionKey {
@@ -20,6 +23,17 @@ impl TryFrom<Vec<u8>> for EncryptionKey {
     fn try_from(value: Vec<u8>) -> Result<Self> {
         let mut key: Key = [0; 32].into();
         key.copy_from_slice(&value);
+
+        Ok(Self { key })
+    }
+}
+
+impl TryFrom<&[u8]> for EncryptionKey {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self> {
+        let mut key: Key = [0; 32].into();
+        key.copy_from_slice(value);
 
         Ok(Self { key })
     }
@@ -51,7 +65,7 @@ impl EncryptionKey {
         chunk: &mut Vec<u8>,
         chunk_meta: &ChunkMetadata,
     ) -> Result<()> {
-        let mut compressed_chunk = zstd::bulk::compress(chunk, 15)?;
+        let mut compressed_chunk = zstd::bulk::compress(chunk, COMPRESSION_LEVEL)?;
         let key = XChaCha20Poly1305::new(&self.key);
         key.encrypt_in_place(
             chunk_meta.nonce.as_slice().into(),
@@ -98,6 +112,16 @@ impl EncryptionNonce {
     }
 }
 
+impl TryFrom<&[u8]> for EncryptionNonce {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self> {
+        let mut nonce: [u8; 24] = [0; 24];
+        nonce.copy_from_slice(value);
+        Ok(Self { nonce })
+    }
+}
+
 impl TryFrom<Vec<u8>> for EncryptionNonce {
     type Error = anyhow::Error;
 
@@ -126,10 +150,26 @@ impl EncryptionNonce {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct ChunkHash(pub(crate) blake3::Hash);
 
+impl Serialize for ChunkHash {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.0.as_bytes().serialize(serializer)
+    }
+}
+
+impl<'a> Deserialize<'a> for ChunkHash {
+    fn deserialize<D: serde::Deserializer<'a>>(deserializer: D) -> Result<Self, D::Error> {
+        let bytes: [u8; blake3::OUT_LEN] = Deserialize::deserialize(deserializer)?;
+        Ok(Self(blake3::Hash::from_bytes(bytes)))
+    }
+}
+
 impl ChunkHash {
+    pub const fn len() -> usize {
+        blake3::OUT_LEN
+    }
     pub fn to_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
@@ -236,7 +276,7 @@ impl FileMetadata {
     /// Serialize the metadata to JSON,  compress it, encrypt the metadata, and serialize it again with base64
     pub fn encrypt_serialize(&self, enc_key: &EncryptionKey, nonce: EncryptionNonce) -> Vec<u8> {
         let mut compressed_bytes =
-            zstd::bulk::compress(&bincode::serialize(self).unwrap(), 15).unwrap();
+            zstd::bulk::compress(&bincode::serialize(self).unwrap(), COMPRESSION_LEVEL).unwrap();
 
         let key = XChaCha20Poly1305::new(&enc_key.key);
         key.encrypt_in_place(
