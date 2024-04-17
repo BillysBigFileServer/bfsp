@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use blake3::Hasher;
 use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
 
-use crate::{files::ChunkMetadata, FileMetadata};
+use crate::{files::ChunkMetadata, ChunkID, FileMetadata};
 
 const COMPRESSION_LEVEL: i32 = 1;
 
@@ -69,27 +69,34 @@ impl EncryptionKey {
         let key = XChaCha20Poly1305::new(&self.key);
         key.encrypt_in_place(
             chunk_meta.nonce.as_slice().into(),
-            chunk_meta.id.as_slice(),
+            chunk_meta.id.as_bytes(),
             &mut compressed_chunk,
         )?;
         *chunk = compressed_chunk;
 
         Ok(())
     }
-    pub fn decrypt_chunk_in_place(
+    pub fn decrypt_decompress_chunk_in_place(
         &self,
         chunk: &mut Vec<u8>,
         chunk_meta: &ChunkMetadata,
     ) -> Result<()> {
         let key = XChaCha20Poly1305::new(&self.key);
         key.decrypt_in_place(
-            chunk_meta.nonce.as_slice().into(),
-            chunk_meta.id.as_slice(),
+            chunk_meta.nonce.as_slice().try_into()?,
+            chunk_meta.id.as_bytes(),
             chunk,
         )?;
         let comp_chunk = chunk.clone();
-        let mut dec = ruzstd::StreamingDecoder::new(comp_chunk.as_slice()).unwrap();
-        dec.read_to_end(chunk).unwrap();
+        let mut dec = ruzstd::StreamingDecoder::new(comp_chunk.as_slice()).map_err(|err| {
+            anyhow!(
+                "Error creating ZSTD decompressor for chunk {}: {err}",
+                chunk_meta.id
+            )
+        })?;
+        *chunk = Vec::new();
+        dec.read_to_end(chunk)
+            .map_err(|err| anyhow!("Error decompressing chunk {}: {err}", chunk_meta.id))?;
 
         Ok(())
     }
@@ -101,6 +108,12 @@ impl EncryptionKey {
 #[derive(Clone, Debug, PartialEq)]
 pub struct EncryptionNonce {
     pub(crate) nonce: [u8; 24],
+}
+
+impl EncryptionNonce {
+    pub fn len() -> usize {
+        24
+    }
 }
 
 impl EncryptionNonce {
@@ -274,9 +287,14 @@ impl ChunkMetadata {
 
 impl FileMetadata {
     /// Serialize the metadata to JSON,  compress it, encrypt the metadata, and serialize it again with base64
-    pub fn encrypt_serialize(&self, enc_key: &EncryptionKey, nonce: EncryptionNonce) -> Vec<u8> {
+    pub fn encrypt_serialize(
+        &self,
+        enc_key: &EncryptionKey,
+        nonce: EncryptionNonce,
+    ) -> Result<Vec<u8>, String> {
         let mut compressed_bytes =
-            zstd::bulk::compress(&bincode::serialize(self).unwrap(), COMPRESSION_LEVEL).unwrap();
+            zstd::bulk::compress(&bincode::serialize(self).unwrap(), COMPRESSION_LEVEL)
+                .map_err(|err| format!("Error compressing file metadata: {err}"))?;
 
         let key = XChaCha20Poly1305::new(&enc_key.key);
         key.encrypt_in_place(
@@ -284,9 +302,9 @@ impl FileMetadata {
             b"",
             &mut compressed_bytes,
         )
-        .unwrap();
+        .map_err(|err| format!("Error encrypting file metadata: {err}"))?;
 
-        compressed_bytes
+        Ok(compressed_bytes)
     }
 
     pub fn decrypt_deserialize(

@@ -13,11 +13,11 @@ message FileServerMessage {
     bytes chunk = 2;
   }
 
-  message ChunksUploadedQuery { repeated bytes chunk_ids = 1; }
+  message ChunksUploadedQuery { repeated string chunk_ids = 1; }
 
-  message DownloadChunkQuery { bytes chunk_id = 1; }
+  message DownloadChunkQuery { string chunk_id = 1; }
 
-  message DeleteChunksQuery { repeated bytes chunk_ids = 1; }
+  message DeleteChunksQuery { repeated string chunk_ids = 1; }
 
   message Authentication { string token = 1; }
 
@@ -89,7 +89,7 @@ message ListFileMetadataResp {
 };
 
 message ChunkMetadata {
-  bytes id = 1;
+  string id = 1;
   bytes hash = 2;
   uint32 size = 3;
   int64 indice = 4;

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
+    str::FromStr,
 };
 use time::PrimitiveDateTime;
 use uuid::Uuid;
@@ -24,6 +25,16 @@ impl FileServerMessage {
 #[derive(Copy, Clone, Eq, Hash, PartialEq)]
 pub struct ChunkID {
     pub id: u128,
+}
+
+impl TryFrom<&str> for ChunkID {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> anyhow::Result<Self> {
+        Ok(Self {
+            id: Uuid::from_str(value)?.as_u128(),
+        })
+    }
 }
 
 impl Display for ChunkID {
@@ -79,9 +90,7 @@ impl ChunkID {
     /// This reduces the number of unknown bits in the file hash by HALF, which reduces the anonimity of any files being uploaded
     /// ^ What the fuck was I writing? - billy december 2023
     pub fn new(hash: &ChunkHash) -> Self {
-        let bytes: [u8; blake3::OUT_LEN] = *hash.0.as_bytes();
-        let uuid_bytes: [u8; 16] = bytes[..16].try_into().unwrap();
-        let uuid = Uuid::from_bytes(uuid_bytes);
+        let uuid: Uuid = Uuid::new_v4();
 
         Self { id: uuid.as_u128() }
     }
@@ -122,7 +131,7 @@ impl Display for FileType {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
     // The key is the chunk's indices, the value is the hash of the chunk
-    pub chunks: HashMap<u64, ChunkHash>,
+    pub chunks: HashMap<u64, ChunkID>,
     pub file_name: String,
     pub file_type: FileType,
     pub create_time: PrimitiveDateTime,
