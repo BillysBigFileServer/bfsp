@@ -1,3 +1,7 @@
+use argon2::password_hash::{
+    rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, Salt, SaltString,
+};
+
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use prost::Message;
 use serde::{Deserialize, Serialize};
@@ -6,7 +10,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
-use chacha20poly1305::{aead::OsRng, AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
+use chacha20poly1305::{AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
 
 use crate::{files::ChunkMetadata, ChunkID, FileMetadata};
 
@@ -379,6 +383,15 @@ pub fn parallel_hash_chunk(chunk: &[u8]) -> ChunkHash {
     let mut hasher = Hasher::new();
     hasher.update(chunk);
     hasher.finalize().into()
+}
+
+pub fn hash_password(password: &str) -> String {
+    let argon2 = argon2::Argon2::default();
+    let salt: SaltString = SaltString::from_b64("g8QqYqhXxwJj037KswzK3g").unwrap();
+    argon2
+        .hash_password(password.as_bytes(), &salt)
+        .unwrap()
+        .to_string()
 }
 
 pub fn base64_encode(data: &[u8]) -> String {

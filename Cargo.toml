@@ -26,6 +26,7 @@ rand = { version = "0.8", features = ["std"] }
 simd-json  = { version = "0.13" }
 serde_json = { version = "1" }
 base64 = { version = "0.22" }
+argon2 = { version = "0.5" }
 
 # TODO: temporary to fix wasm build
 # upstream issue: https://github.com/gyscos/zstd-rs/issues/269

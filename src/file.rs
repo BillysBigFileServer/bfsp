@@ -134,6 +134,7 @@ pub struct FileMetadata {
     pub chunks: HashMap<u64, ChunkID>,
     pub file_name: String,
     pub file_type: FileType,
+    pub file_size: u64,
     pub create_time: PrimitiveDateTime,
     pub modification_time: PrimitiveDateTime,
 }
