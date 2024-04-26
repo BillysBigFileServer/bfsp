@@ -14,6 +14,7 @@ mod bfsp {
 
 pub use bfsp::*;
 pub use prost::Message;
+pub use uuid;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod config;

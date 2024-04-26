@@ -4,6 +4,7 @@ use base64::{engine::general_purpose::URL_SAFE, Engine};
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use std::{io::Read, str::FromStr};
+use uuid::Uuid;
 
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
@@ -75,6 +76,16 @@ impl EncryptionKey {
         Self { key }
     }
 
+    /// Generates a new encryption key based on the master key and the hash of a file
+    pub fn derive_key(&self, file_id: &Uuid) -> Self {
+        let mut new_key_bytes = self.key.to_vec();
+        new_key_bytes.extend_from_slice(file_id.as_bytes());
+
+        let new_key_bytes_hash = blake3::hash(&new_key_bytes);
+        let key: Key = *Key::from_slice(new_key_bytes_hash.as_bytes());
+        Self { key }
+    }
+
     pub fn compress_encrypt_chunk_in_place(
         &self,
         chunk: &mut Vec<u8>,
@@ -117,6 +128,11 @@ impl EncryptionKey {
     }
     pub fn serialize(&self) -> String {
         URL_SAFE.encode(&self.key)
+    }
+
+    pub fn deserialize(b64: &str) -> Self {
+        let key = *Key::from_slice(URL_SAFE.decode(b64).unwrap().as_slice());
+        Self { key }
     }
 }
 

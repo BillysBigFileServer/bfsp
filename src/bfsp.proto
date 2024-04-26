@@ -4,7 +4,7 @@ package bfsp.files;
 
 message EncryptedFileMetadata {
   bytes metadata = 1;
-  bytes nonce = 2;
+  string id = 2;
 }
 
 message FileServerMessage {
@@ -23,9 +23,9 @@ message FileServerMessage {
 
   message UploadFileMetadata { EncryptedFileMetadata encrypted_file_metadata = 1; };
 
-  message DownloadFileMetadataQuery { int64 id = 1; }
+  message DownloadFileMetadataQuery { string id = 1; }
 
-  message ListFileMetadataQuery { repeated int64 ids = 1; }
+  message ListFileMetadataQuery { repeated string ids = 1; }
 
   Authentication auth = 1;
 
@@ -80,7 +80,7 @@ message DownloadFileMetadataResp {
 };
 
 message ListFileMetadataResp {
-  message FileMetadatas { map<int64, EncryptedFileMetadata> metadatas = 1; }
+  message FileMetadatas { map<string, EncryptedFileMetadata> metadatas = 1; }
 
   oneof response {
     FileMetadatas metadatas = 1;

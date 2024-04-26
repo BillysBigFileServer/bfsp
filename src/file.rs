@@ -131,6 +131,7 @@ impl Display for FileType {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
     // The key is the chunk's indices, the value is the hash of the chunk
+    pub id: String,
     pub chunks: HashMap<u64, ChunkID>,
     pub file_name: String,
     pub file_type: FileType,
