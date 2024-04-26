@@ -135,6 +135,7 @@ pub struct FileMetadata {
     pub file_name: String,
     pub file_type: FileType,
     pub file_size: u64,
+    pub directory: String,
     pub create_time: PrimitiveDateTime,
     pub modification_time: PrimitiveDateTime,
 }

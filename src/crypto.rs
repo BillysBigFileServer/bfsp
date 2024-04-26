@@ -1,18 +1,15 @@
-use argon2::password_hash::{
-    rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, Salt, SaltString,
-};
+use argon2::password_hash::{PasswordHasher, SaltString};
 
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use prost::Message;
 use serde::{Deserialize, Serialize};
-use std::io::Read;
-use std::str::FromStr;
+use std::{io::Read, str::FromStr};
 
 use anyhow::{anyhow, Result};
 use blake3::Hasher;
 use chacha20poly1305::{AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
 
-use crate::{files::ChunkMetadata, ChunkID, FileMetadata};
+use crate::{files::ChunkMetadata, FileMetadata};
 
 const COMPRESSION_LEVEL: i32 = 1;
 
@@ -59,8 +56,22 @@ impl Into<Vec<u8>> for EncryptionKey {
 }
 
 impl EncryptionKey {
-    pub fn new() -> Self {
-        let key = XChaCha20Poly1305::generate_key(&mut OsRng);
+    pub fn new(password: &str) -> Self {
+        let salt: SaltString = SaltString::from_b64("g8QqYqhXxwJj037KswzK3g").unwrap();
+        let argon2 = argon2::Argon2::default();
+        let password_hash = argon2
+            .hash_password(password.as_bytes(), &salt)
+            .unwrap()
+            .hash
+            .unwrap();
+        let password_hash_bytes = password_hash.as_bytes();
+        // We need to make the password hash a fixed length, so we use blake3
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(password_hash_bytes);
+        let key = hasher.finalize();
+
+        // blake3 has a 32 byte output, which is the same as the key size for XChaCha20Poly1305 :)
+        let key: Key = *Key::from_slice(key.as_bytes());
         Self { key }
     }
 
