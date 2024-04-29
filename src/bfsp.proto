@@ -29,6 +29,8 @@ message FileServerMessage {
 
   message ListFileMetadataQuery { repeated string ids = 1; }
 
+  message DeleteFileMetadataQuery { string id = 1; }
+
   Authentication auth = 1;
 
   oneof message {
@@ -40,6 +42,7 @@ message FileServerMessage {
     DownloadFileMetadataQuery download_file_metadata_query = 7;
     ListFileMetadataQuery list_file_metadata_query = 8;
     ListChunkMetadataQuery list_chunk_metadata_query = 9;
+    DeleteFileMetadataQuery delete_file_metadata_query = 10;
   }
 }
 
@@ -72,6 +75,8 @@ message ChunksUploadedQueryResp {
 }
 
 message DeleteChunksResp { optional string err = 1; }
+
+message DeleteFileMetadataResp { optional string err = 1; }
 
 message UploadFileMetadataResp { optional string err = 1; };
 
