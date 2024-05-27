@@ -142,7 +142,9 @@ pub struct FileMetadata {
     pub file_name: String,
     pub file_type: FileType,
     pub file_size: u64,
+    /// DEPRECATED
     pub directory: String,
+    pub directory_vec: Option<Vec<String>>,
     pub create_time: PrimitiveDateTime,
     pub modification_time: PrimitiveDateTime,
 }
