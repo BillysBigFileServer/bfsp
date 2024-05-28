@@ -32,7 +32,9 @@ impl TryFrom<&str> for ChunkID {
 
     fn try_from(value: &str) -> anyhow::Result<Self> {
         Ok(Self {
-            id: Uuid::from_str(value)?.as_u128(),
+            id: Uuid::from_str(value)
+                .map_err(|err| anyhow!("Error deserializing ChunkID: {err}"))?
+                .as_u128(),
         })
     }
 }
