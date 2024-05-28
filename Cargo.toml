@@ -18,7 +18,6 @@ serde = { version = "1", features = ["derive"] }
 thiserror = { version = "1" }
 prost = "0.12"
 bytes = "1"
-bincode = { version = "1", features = ["i128"] }
 toml = { version = "0.8" }
 futures = { version = "0.3" }
 rayon = { version = "1" }

@@ -323,9 +323,9 @@ impl FileMetadata {
         enc_key: &EncryptionKey,
         nonce: EncryptionNonce,
     ) -> Result<Vec<u8>, String> {
-        let mut compressed_bytes =
-            zstd::bulk::compress(&bincode::serialize(self).unwrap(), COMPRESSION_LEVEL)
-                .map_err(|err| format!("Error compressing file metadata: {err}"))?;
+        let bytes = self.encode_to_vec();
+        let mut compressed_bytes = zstd::bulk::compress(&bytes, COMPRESSION_LEVEL)
+            .map_err(|err| format!("Error compressing file metadata: {err}"))?;
 
         let key = XChaCha20Poly1305::new(&enc_key.key);
         key.encrypt_in_place(
@@ -355,8 +355,9 @@ impl FileMetadata {
         dec.read_to_end(&mut decompressed)
             .map_err(|err| format!("Error decompressing file metadata: {err}"))?;
 
-        Ok(bincode::deserialize(&decompressed)
-            .map_err(|err| format!("Error deserializing file metadata: {err}"))?)
+        let metadata = FileMetadata::decode(decompressed.as_slice())
+            .map_err(|err| format!("Error deserializing file metadata: {err}"))?;
+        Ok(metadata)
     }
 }
 

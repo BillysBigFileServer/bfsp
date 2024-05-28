@@ -109,46 +109,6 @@ impl ChunkMetadata {
     }
 }
 
-// This is mostly for thumbnails. We always fallback to binary if we don't know the file type, but this is pretty inconsequential
-#[derive(Clone, Serialize, Deserialize)]
-pub enum FileType {
-    Image,
-    Text,
-    Binary,
-}
-
-impl Display for FileType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            FileType::Image => f.write_str("Image"),
-            FileType::Text => f.write_str("Text"),
-            FileType::Binary => f.write_str("Binary"),
-        }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub enum FileMetadataVersion {
-    V1,
-}
-
-/// Information on how to reconstruct a file, as well as some extra information
-#[derive(Clone, Serialize, Deserialize)]
-pub struct FileMetadata {
-    pub version: FileMetadataVersion,
-    // The key is the chunk's indices, the value is the hash of the chunk
-    pub id: String,
-    pub chunks: HashMap<u64, ChunkID>,
-    pub file_name: String,
-    pub file_type: FileType,
-    pub file_size: u64,
-    /// DEPRECATED
-    pub directory: String,
-    pub directory_vec: Option<Vec<String>>,
-    pub create_time: PrimitiveDateTime,
-    pub modification_time: PrimitiveDateTime,
-}
-
 #[derive(Debug)]
 pub struct AuthErr;
 
