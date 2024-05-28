@@ -1,5 +1,6 @@
 use argon2::password_hash::{PasswordHasher, SaltString};
 
+use crate::cli::FileMetadata;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use prost::Message;
 use serde::{Deserialize, Serialize};
@@ -10,7 +11,7 @@ use anyhow::{anyhow, Result};
 use blake3::Hasher;
 use chacha20poly1305::{AeadInPlace, Key, KeyInit, XChaCha20Poly1305};
 
-use crate::{files::ChunkMetadata, FileMetadata};
+use crate::files::ChunkMetadata;
 
 const COMPRESSION_LEVEL: i32 = 1;
 

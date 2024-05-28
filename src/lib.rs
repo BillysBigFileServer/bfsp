@@ -10,6 +10,10 @@ mod bfsp {
     pub mod ipc {
         include!(concat!(env!("OUT_DIR"), "/bfsp.ipc.rs"));
     }
+
+    pub mod cli {
+        include!(concat!(env!("OUT_DIR"), "/bfsp.cli.rs"));
+    }
 }
 
 pub use bfsp::*;

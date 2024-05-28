@@ -112,20 +112,3 @@ message ChunkMetadata {
   int64 indice = 4;
   bytes nonce = 5;
 }
-
-enum FileType {
-  IMAGE = 0;
-  TEXT = 1;
-  BINARY = 2;
-}
-
-message FileMetadata {
-  string id = 1;
-  map<uint64, string> chunks = 2;
-  string file_name = 3;
-  FileType file_type = 4;
-  uint64 file_size = 5;
-  repeated string directory = 6;
-  int64 create_time = 7;
-  int64 modification_time = 8;
-}
