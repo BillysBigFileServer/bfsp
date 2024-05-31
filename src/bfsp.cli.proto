@@ -18,3 +18,9 @@ message FileMetadata {
   int64 create_time = 7;
   int64 modification_time = 8;
 }
+
+message ViewFileInfo {
+  string id = 1;
+  string token = 2;
+  string file_enc_key = 3;
+}
