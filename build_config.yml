@@ -1,6 +1,6 @@
 ---
 includes: []
-files: [src/bfsp.proto src/bfsp.ipc.proto src/bfsp.cli.proto]
+files: [src/bfsp.proto src/bfsp.ipc.proto src/bfsp.cli.proto src/bfsp.internal.proto]
 output: src/
 messages:
   - paths: []

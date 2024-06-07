@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package bfsp.internal;
+
+message InternalFileServerMessage {
+  message GetUsage { repeated int64 user_ids = 1; }
+  oneof message {
+    GetUsage get_usage = 1;
+  }
+}
+
+message EncryptedInternalFileServerMessage {
+  bytes nonce = 1;
+  bytes enc_message = 2;
+}
+
+message GetUsageResp {
+  message Usage {
+    map<int64, uint64> usages = 1;
+  }
+
+  oneof response {
+    Usage usage = 1;
+    string err = 2;
+  }
+}

@@ -3,7 +3,7 @@
 mod test;
 
 mod bfsp {
-    pub(crate) mod files {
+    pub mod files {
         include!(concat!(env!("OUT_DIR"), "/bfsp.files.rs"));
     }
 
@@ -16,12 +16,17 @@ mod bfsp {
     }
 }
 
+pub use bfsp::files::*;
 pub use bfsp::*;
+pub use chacha20poly1305;
 pub use prost::Message;
 pub use uuid;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod config;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod internal;
 
 pub mod crypto;
 pub mod file;

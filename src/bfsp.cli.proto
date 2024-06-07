@@ -5,7 +5,8 @@ package bfsp.cli;
 enum FileType {
   IMAGE = 0;
   TEXT = 1;
-  BINARY = 2;
+  UNKNOWN = 2;
+  BINARY = 3;
 }
 
 message FileMetadata {

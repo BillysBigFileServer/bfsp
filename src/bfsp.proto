@@ -31,6 +31,8 @@ message FileServerMessage {
 
   message DeleteFileMetadataQuery { string id = 1; }
 
+  message GetUsageQuery {  }
+
   Authentication auth = 1;
 
   oneof message {
@@ -43,6 +45,7 @@ message FileServerMessage {
     ListFileMetadataQuery list_file_metadata_query = 8;
     ListChunkMetadataQuery list_chunk_metadata_query = 9;
     DeleteFileMetadataQuery delete_file_metadata_query = 10;
+    GetUsageQuery get_usage_query = 11;
   }
 }
 
@@ -103,6 +106,17 @@ message ListChunkMetadataResp {
         ChunkMetadatas metadatas = 1;
         string err = 2;
     }
+}
+
+message GetUsageResp {
+  message Usage {
+    uint64 total_usage = 1;
+  }
+
+  oneof response {
+    Usage usage = 1;
+    string err = 2;
+  }
 }
 
 message ChunkMetadata {
