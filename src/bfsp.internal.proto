@@ -5,10 +5,12 @@ package bfsp.internal;
 message InternalFileServerMessage {
   message GetUsage { repeated int64 user_ids = 1; }
   message GetStorageCap { repeated int64 user_ids = 1; }
+  message SetStorageCap { map<int64, uint64> storage_caps = 1; }
 
   oneof message {
     GetUsage get_usage = 1;
     GetStorageCap get_storage_cap = 2;
+    SetStorageCap set_storage_cap = 3;
   }
 }
 
@@ -37,4 +39,8 @@ message GetStorageCapResp {
     StorageCap storage_caps = 1;
     string err = 2;
   }
+}
+
+message SetStorageCapResp {
+    optional string err = 1;
 }
