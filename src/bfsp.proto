@@ -9,8 +9,9 @@ message EncryptedFileMetadata {
 
 message FileServerMessage {
   message UploadChunk {
-    ChunkMetadata chunk_metadata = 1;
+    ChunkMetadata chunk_metadata = 1 [deprecated = true];
     bytes chunk = 2;
+    EncryptedChunkMetadata enc_chunk_metadata = 3;
   }
 
   message ChunksUploadedQuery { repeated string chunk_ids = 1; }
@@ -53,8 +54,9 @@ message UploadChunkResp { optional string err = 1; }
 
 message DownloadChunkResp {
   message ChunkData {
-    ChunkMetadata chunk_metadata = 1;
+    ChunkMetadata chunk_metadata = 1 [deprecated = true];
     bytes chunk = 2;
+    EncryptedChunkMetadata enc_chunk_metadata = 3;
   }
 
   oneof response {
@@ -117,6 +119,11 @@ message GetUsageResp {
     Usage usage = 1;
     string err = 2;
   }
+}
+
+message EncryptedChunkMetadata {
+  string id = 1;
+  bytes enc_metadata = 2;
 }
 
 message ChunkMetadata {
