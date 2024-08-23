@@ -11,12 +11,12 @@ anyhow = { version = "1" }
 uuid = { version = "1", features = ["v4"] }
 chacha20poly1305 = { version = "0.10", default-features = false, features = ["std", "getrandom"] }
 zstd = { version = "=0.13.0" }
-ruzstd = { version = "0.6" }
+ruzstd = { version = "0.7" }
 log = "0.4"
 time = { version = "0.3", features = ["serde", "macros"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = { version = "1" }
-prost = "0.12"
+prost = "0.13"
 bytes = "1"
 toml = { version = "0.8" }
 futures = { version = "0.3" }
@@ -32,7 +32,7 @@ argon2 = { version = "0.5" }
 zstd-sys = { version = "=2.0.9", default-features = false }
 
 [build-dependencies]
-prost-build = { version = "0.12" }
+prost-build = { version = "0.13" }
 
 
 [dev-dependencies]
@@ -45,7 +45,7 @@ tokio = { version = "1", features = [
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["fs", "io-util"], default-features = false }
-sqlx = { version = "0.7", features = ["postgres"] }
+sqlx = { version = "0.8", features = ["postgres"] }
 directories = { version = "5" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

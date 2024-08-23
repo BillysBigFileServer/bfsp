@@ -1,4 +1,6 @@
-use sqlx::{postgres::PgArgumentBuffer, types::Text, Postgres};
+use std::error::Error;
+
+use sqlx::{error::BoxDynError, postgres::PgArgumentBuffer, types::Text, Postgres};
 
 use crate::{ChunkHash, ChunkID};
 
@@ -9,7 +11,10 @@ impl sqlx::Type<Postgres> for ChunkID {
 }
 
 impl sqlx::Encode<'_, Postgres> for ChunkID {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> sqlx::encode::IsNull {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<sqlx::encode::IsNull, BoxDynError> {
         Text(self.to_string()).encode(buf)
     }
 }
@@ -21,7 +26,10 @@ impl sqlx::Type<Postgres> for ChunkHash {
 }
 
 impl sqlx::Encode<'_, Postgres> for ChunkHash {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> sqlx::encode::IsNull {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<sqlx::encode::IsNull, BoxDynError> {
         Text(self.to_string()).encode(buf)
     }
 }
