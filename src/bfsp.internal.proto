@@ -6,12 +6,23 @@ message InternalFileServerMessage {
   message GetUsage { repeated int64 user_ids = 1; }
   message GetStorageCap { repeated int64 user_ids = 1; }
   message SetStorageCap { map<int64, uint64> storage_caps = 1; }
+  message SuspendUsers { map<int64, Suspension> suspensions = 1; }
+  message GetSuspensions { repeated int64 user_ids = 1; }
 
   oneof message {
     GetUsage get_usage = 1;
     GetStorageCap get_storage_cap = 2;
     SetStorageCap set_storage_cap = 3;
+    SuspendUsers suspend_users = 4;
+    GetSuspensions get_suspensions = 5;
   }
+}
+
+message Suspension {
+  bool read_suspended = 1;
+  bool query_suspended = 2;
+  bool write_suspended = 3;
+  bool delete_suspended = 4;
 }
 
 message EncryptedInternalFileServerMessage {
@@ -42,5 +53,20 @@ message GetStorageCapResp {
 }
 
 message SetStorageCapResp {
-    optional string err = 1;
+  optional string err = 1;
+}
+
+message SuspendUsersResp {
+  optional string err = 1;
+}
+
+message GetSuspensionsResp {
+  message Suspensions {
+    map<int64, Suspension> suspension_info = 1;
+  }
+
+  oneof response {
+    Suspensions suspensions = 1;
+    string err = 2;
+  }
 }

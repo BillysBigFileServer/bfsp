@@ -6,11 +6,9 @@ use anyhow::{anyhow, Result};
 pub use prost::Message;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
-    fmt::{Debug, Display, Formatter},
+    fmt::{Debug, Display},
     str::FromStr,
 };
-use time::PrimitiveDateTime;
 use uuid::Uuid;
 
 impl FileServerMessage {
@@ -88,12 +86,8 @@ impl ChunkID {
 }
 
 impl ChunkID {
-    /// Uses the chunk has as an RNG, FIXME insecure as shit
-    /// This reduces the number of unknown bits in the file hash by HALF, which reduces the anonimity of any files being uploaded
-    /// ^ What the fuck was I writing? - billy december 2023
-    pub fn new(hash: &ChunkHash) -> Self {
+    pub fn new() -> Self {
         let uuid: Uuid = Uuid::new_v4();
-
         Self { id: uuid.as_u128() }
     }
 }
