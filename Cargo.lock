@@ -142,6 +142,7 @@ dependencies = [
  "log",
  "prost",
  "prost-build",
+ "prost-types",
  "rand",
  "rayon",
  "ruzstd",

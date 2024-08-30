@@ -20,6 +20,7 @@ pub use bfsp::files::*;
 pub use bfsp::*;
 pub use chacha20poly1305;
 pub use prost::Message;
+pub use prost_types;
 pub use uuid;
 
 #[cfg(not(target_arch = "wasm32"))]

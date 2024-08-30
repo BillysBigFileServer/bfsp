@@ -27,6 +27,7 @@ argon2 = { version = "0.5" }
 # TODO: temporary to fix wasm build
 # upstream issue: https://github.com/gyscos/zstd-rs/issues/269
 zstd-sys = { version = "=2.0.9", default-features = false }
+prost-types = "0.13.1"
 
 [build-dependencies]
 prost-build = { version = "0.13" }

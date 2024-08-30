@@ -2,12 +2,17 @@ syntax = "proto3";
 
 package bfsp.internal;
 
+import "google/protobuf/timestamp.proto";
+
 message InternalFileServerMessage {
   message GetUsage { repeated int64 user_ids = 1; }
   message GetStorageCap { repeated int64 user_ids = 1; }
   message SetStorageCap { map<int64, uint64> storage_caps = 1; }
   message SuspendUsers { map<int64, Suspension> suspensions = 1; }
   message GetSuspensions { repeated int64 user_ids = 1; }
+  message QueueAction { ActionInfo action = 1; }
+  message GetQueuedAction { repeated int64 user_ids = 1;}
+  message DeleteQueuedAction { int32 action_id = 1; }
 
   oneof message {
     GetUsage get_usage = 1;
@@ -15,13 +20,16 @@ message InternalFileServerMessage {
     SetStorageCap set_storage_cap = 3;
     SuspendUsers suspend_users = 4;
     GetSuspensions get_suspensions = 5;
+    QueueAction queue_action = 6;
+    GetQueuedAction get_action = 7;
+    DeleteQueuedAction delete_queued_action = 8;
   }
 }
 
 message ActionInfo {
   optional int32 id = 1;
   string action = 2;
-  int64 execute_at = 3;
+  google.protobuf.Timestamp execute_at = 3;
   string status = 4;
   int64 user_id = 5;
 }
@@ -77,4 +85,26 @@ message GetSuspensionsResp {
     Suspensions suspensions = 1;
     string err = 2;
   }
+}
+
+message QueueActionResp {
+  oneof response {
+    ActionInfo action = 1;
+    string err = 2;
+  }
+}
+
+message GetActionResp {
+  message ActionsPerUser {
+     map<int64, ActionInfo> action_info = 1;
+  }
+
+  oneof response {
+    ActionsPerUser actions = 1;
+    string err = 2;
+  }
+}
+
+message DeleteActionResp {
+  optional string err = 1;
 }
