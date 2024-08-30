@@ -23,9 +23,6 @@ pub use prost::Message;
 pub use uuid;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub mod config;
-
-#[cfg(not(target_arch = "wasm32"))]
 pub mod internal;
 
 pub mod crypto;

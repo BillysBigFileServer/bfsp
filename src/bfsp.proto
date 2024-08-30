@@ -34,6 +34,10 @@ message FileServerMessage {
 
   message GetUsageQuery {  }
 
+  message SetMasterEncryptionKey { bytes encrypted_key = 1; }
+
+  message GetMasterEncryptionKey { }
+
   Authentication auth = 1;
 
   oneof message {
@@ -47,6 +51,8 @@ message FileServerMessage {
     ListChunkMetadataQuery list_chunk_metadata_query = 9;
     DeleteFileMetadataQuery delete_file_metadata_query = 10;
     GetUsageQuery get_usage_query = 11;
+    SetMasterEncryptionKey set_master_key = 12;
+    GetMasterEncryptionKey get_master_key = 13;
   }
 }
 
@@ -117,6 +123,17 @@ message GetUsageResp {
 
   oneof response {
     Usage usage = 1;
+    string err = 2;
+  }
+}
+
+message SetMasterEncryptionKeyResp {
+    optional string err = 1;
+}
+
+message GetMasterEncryptionKeyResp {
+  oneof response {
+    bytes encrypted_key = 1;
     string err = 2;
   }
 }

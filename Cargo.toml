@@ -18,12 +18,9 @@ serde = { version = "1", features = ["derive"] }
 thiserror = { version = "1" }
 prost = "0.13"
 bytes = "1"
-toml = { version = "0.8" }
 futures = { version = "0.3" }
 rayon = { version = "1" }
 rand = { version = "0.8", features = ["std"] }
-simd-json  = { version = "0.13" }
-serde_json = { version = "1" }
 base64 = { version = "0.22" }
 argon2 = { version = "0.5" }
 
