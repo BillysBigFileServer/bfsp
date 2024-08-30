@@ -18,6 +18,14 @@ message InternalFileServerMessage {
   }
 }
 
+message ActionInfo {
+  optional int32 id = 1;
+  string action = 2;
+  int64 execute_at = 3;
+  string status = 4;
+  int64 user_id = 5;
+}
+
 message Suspension {
   bool read_suspended = 1;
   bool query_suspended = 2;
