@@ -105,6 +105,6 @@ message GetActionResp {
   }
 }
 
-message DeleteActionResp {
+message DeleteQueuedActionResp {
   optional string err = 1;
 }

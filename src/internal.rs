@@ -1,29 +1,31 @@
 include!(concat!(env!("OUT_DIR"), "/bfsp.internal.rs"));
-use chacha20poly1305::{aead::AeadMutInPlace, XChaCha20Poly1305};
+use std::error::Error;
+
+use chacha20poly1305::{aead::Aead, XChaCha20Poly1305};
 use prost::Message;
 
 pub fn encrypt_internal_message(
-    mut key: XChaCha20Poly1305,
+    key: XChaCha20Poly1305,
     nonce: Vec<u8>,
     message: InternalFileServerMessage,
 ) -> EncryptedInternalFileServerMessage {
-    let mut message_bytes = message.encode_to_vec();
-    key.encrypt_in_place(nonce.as_slice().into(), b"", &mut message_bytes)
+    let enc_message = key
+        .encrypt(nonce.as_slice().into(), message.encode_to_vec().as_slice())
         .unwrap();
 
-    EncryptedInternalFileServerMessage {
-        nonce,
-        enc_message: message_bytes,
-    }
+    EncryptedInternalFileServerMessage { nonce, enc_message }
 }
 
 pub fn decrypt_internal_message(
-    mut key: XChaCha20Poly1305,
+    key: XChaCha20Poly1305,
     enc_message: EncryptedInternalFileServerMessage,
 ) -> InternalFileServerMessage {
-    let mut message_bytes = enc_message.enc_message;
-    key.decrypt_in_place(enc_message.nonce.as_slice().into(), b"", &mut message_bytes)
+    let decrypted_message = key
+        .decrypt(
+            enc_message.nonce.as_slice().into(),
+            enc_message.enc_message.as_slice(),
+        )
         .unwrap();
 
-    InternalFileServerMessage::decode(message_bytes.as_slice()).unwrap()
+    InternalFileServerMessage::decode(decrypted_message.as_slice()).unwrap()
 }
