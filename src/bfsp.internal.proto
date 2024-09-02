@@ -11,7 +11,7 @@ message InternalFileServerMessage {
   message SuspendUsers { map<int64, Suspension> suspensions = 1; }
   message GetSuspensions { repeated int64 user_ids = 1; }
   message QueueAction { ActionInfo action = 1; }
-  message GetQueuedAction { repeated int64 user_ids = 1;}
+  message GetQueuedActions { repeated int64 user_ids = 1;}
   message DeleteQueuedAction { int32 action_id = 1; }
 
   oneof message {
@@ -21,7 +21,7 @@ message InternalFileServerMessage {
     SuspendUsers suspend_users = 4;
     GetSuspensions get_suspensions = 5;
     QueueAction queue_action = 6;
-    GetQueuedAction get_action = 7;
+    GetQueuedActions get_queued_actions = 7;
     DeleteQueuedAction delete_queued_action = 8;
   }
 }
@@ -94,9 +94,14 @@ message QueueActionResp {
   }
 }
 
-message GetActionResp {
+message GetQueuedActionResp {
+  message Actions {
+    repeated ActionInfo actions = 1;
+  }
+
+
   message ActionsPerUser {
-     map<int64, ActionInfo> action_info = 1;
+     map<int64, Actions> action_info = 1;
   }
 
   oneof response {
