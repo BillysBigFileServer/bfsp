@@ -10,7 +10,7 @@ anyhow = { version = "1" }
 
 uuid = { version = "1", features = ["v4"] }
 chacha20poly1305 = { version = "0.10", default-features = false, features = ["std", "getrandom"] }
-zstd = { version = "=0.13.0" }
+zstd = { version = "0.13" }
 ruzstd = { version = "0.7" }
 log = "0.4"
 time = { version = "0.3", features = ["serde", "macros"] }
@@ -23,11 +23,7 @@ rayon = { version = "1" }
 rand = { version = "0.8", features = ["std"] }
 base64 = { version = "0.22" }
 argon2 = { version = "0.5" }
-
-# TODO: temporary to fix wasm build
-# upstream issue: https://github.com/gyscos/zstd-rs/issues/269
-zstd-sys = { version = "=2.0.9", default-features = false }
-prost-types = "0.13.1"
+prost-types = "0.13"
 
 [build-dependencies]
 prost-build = { version = "0.13" }
@@ -48,4 +44,3 @@ directories = { version = "5" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
-zstd = { version = "=0.13.0", default-features = false, features = ["wasm"] }
