@@ -119,6 +119,7 @@ message ListChunkMetadataResp {
 message GetUsageResp {
   message Usage {
     uint64 total_usage = 1;
+    uint64 storage_cap = 2;
   }
 
   oneof response {
