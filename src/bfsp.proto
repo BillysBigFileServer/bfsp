@@ -26,6 +26,8 @@ message FileServerMessage {
 
   message UploadFileMetadata { EncryptedFileMetadata encrypted_file_metadata = 1; };
 
+  message UpdateFileMetadata { EncryptedFileMetadata encrypted_file_metadata = 1; };
+
   message DownloadFileMetadataQuery { string id = 1; }
 
   message ListFileMetadataQuery { repeated string ids = 1; }
@@ -53,6 +55,7 @@ message FileServerMessage {
     GetUsageQuery get_usage_query = 11;
     SetMasterEncryptionKey set_master_key = 12;
     GetMasterEncryptionKey get_master_key = 13;
+    UpdateFileMetadata update_file_metadata = 14;
   }
 }
 
@@ -90,6 +93,8 @@ message DeleteChunksResp { optional string err = 1; }
 message DeleteFileMetadataResp { optional string err = 1; }
 
 message UploadFileMetadataResp { optional string err = 1; };
+
+message UpdateFileMetadataResp { optional string err = 1; };
 
 message DownloadFileMetadataResp {
   oneof response {
