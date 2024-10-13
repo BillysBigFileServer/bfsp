@@ -315,6 +315,32 @@ impl ChunkMetadata {
     pub fn encode_base64(&self) -> String {
         URL_SAFE.encode(&self.encode_to_vec())
     }
+
+    pub fn decrypt_deserialize(
+        id: &Uuid,
+        enc_key: &EncryptionKey,
+        nonce: EncryptionNonce,
+        mut buffer: Vec<u8>,
+    ) -> Result<Self, String> {
+        let key = XChaCha20Poly1305::new(&enc_key.key);
+        key.decrypt_in_place(
+            nonce.to_bytes().as_slice().into(),
+            id.as_bytes(),
+            &mut buffer,
+        )
+        .map_err(|err| format!("Error decrypting chunk metadata: {err}"))?;
+
+        let mut dec = ruzstd::StreamingDecoder::new(buffer.as_slice())
+            .map_err(|err| format!("Error creating ZSTD decompressor for chunk metadata: {err}"))?;
+        let mut decompressed = Vec::new();
+        dec.read_to_end(&mut decompressed)
+            .map_err(|err| format!("Error decompressing chunk metadata: {err}"))?;
+
+        let metadata = ChunkMetadata::decode(decompressed.as_slice())
+            .map_err(|err| format!("Error deserializing chunk metadata: {err}"))?;
+
+        Ok(metadata)
+    }
 }
 
 impl FileMetadata {

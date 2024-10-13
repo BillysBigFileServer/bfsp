@@ -21,6 +21,7 @@ pub use bfsp::*;
 pub use chacha20poly1305;
 pub use prost::Message;
 pub use prost_types;
+pub use ruzstd;
 pub use uuid;
 
 #[cfg(not(target_arch = "wasm32"))]
